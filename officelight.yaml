@@ -1,0 +1,85 @@
+esphome:
+  name: officelight
+  platform: ESP8266
+  board: esp01_1m
+
+wifi:
+  ssid: "Kaywinnet"
+  password: "806194edb8"
+
+logger:
+  level: WARN
+
+api:
+
+ota:
+
+###############################
+
+# Virtual switch GPIO12   (Relay on the Sonoff Mini)
+switch:
+  - platform: gpio
+    name: "OfficeLight"            #Becomes switch.officelight
+    pin:
+      number: 12
+      mode: output
+    id: OfficeLight_relay
+    
+  - platform: gpio
+    name: "OfficeLight_led"        #Becomes switch.officelight_led
+    pin:
+      number: 13                   #Blue LED
+      mode: output
+    id: OfficeLight_led
+    
+    
+# Physical Button on GPIO0
+binary_sensor:
+  - platform: gpio
+    pin: 
+      number: 0
+      inverted: False
+      mode: INPUT_PULLUP
+    name: OfficeLight_Button
+    internal: true
+    on_press:
+      - switch.toggle: OfficeLight_relay    
+      
+  # Physical Switch on GPIO4    (S2 on the Mini)
+  - platform: gpio
+    pin: 
+      number: 4                   #S2 (Switch) terminal on Mini
+      inverted: False
+      mode: INPUT_PULLUP
+    name: "OfficeLight Remote Button"
+    on_press:
+      then:
+      - switch.toggle: OfficeLight_relay
+    on_release:
+      then:
+      - switch.toggle: OfficeLight_relay
+
+      
+# Get the WiFi details
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: Office Light IP Address
+      id: OfficeLight_ip
+    ssid:
+      name: Office Light SSID
+    mac_address:
+      name: Office Light Mac Address
+      
+sensor:
+  - platform: wifi_signal
+    name: "OfficeLight WiFi Signal Sensor"
+    id: OfficeLight_WiFi_level
+    update_interval: 60s
+    
+    
+status_led:
+  pin:
+    number: 16                    #External status LED
+    inverted: True
+    #number: 13                    #Blue status LED

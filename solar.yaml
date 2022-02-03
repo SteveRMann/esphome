@@ -1,0 +1,160 @@
+esphome:
+  name: solar
+  platform: ESP8266
+  board: d1_mini
+
+
+  #For blinking the greenLED
+  on_boot:
+    priority: -100
+    then:
+      - output.turn_on:
+          my_slow_pwm  
+      - output.set_level:
+          id: my_slow_pwm
+          level: "50%"
+
+output:
+    platform: slow_pwm
+    pin: D3
+    id: my_slow_pwm
+    period: 100ms
+
+    
+      
+
+wifi:
+  ssid: "Kaywinnet"
+  password: !secret wifi_password
+  fast_connect: true
+
+#  # Enable fallback hotspot (captive portal) in case wifi connection fails
+#  ap:
+#    ssid: "Solar Fallback Hotspot"
+#    password: "Oi136ZHGIzON"
+#
+##The captive portal component in ESPHome is a fallback mechanism for when
+##connecting to the configured WiFi fails.
+#captive_portal:
+
+#NO API when using MQTT
+api:
+
+mqtt:
+  broker: '192.168.1.124'
+  discovery: false
+  discovery_retain: false
+  birth_message:
+  will_message:
+  on_message:
+    #ota on = turn off deep sleep
+    - topic: esp/ota_mode
+      payload: 'ON'
+      then:
+        - deep_sleep.prevent: deep_sleep_1
+    #ota off = turn on deep sleep
+    - topic: esp/ota_mode
+      payload: 'OFF'
+      then:
+        - deep_sleep.enter: deep_sleep_1
+        
+
+# Enable logging
+logger:
+  level: DEBUG     # default
+  #level: INFO
+
+
+# Enable Over the Air updates
+ota:
+  safe_mode: True
+  
+deep_sleep:
+  id: deep_sleep_1
+  run_duration: 10s
+  sleep_duration: 300s  
+  
+
+#  - platform: restart
+#    name: "Solar Restart"    #- switch.solar_restart
+
+
+
+text_sensor:
+  # Get the WiFi details
+  - platform: wifi_info
+    ip_address:
+      name: Solar IP Address
+    ssid:
+      name: Solar SSID
+    bssid:
+      name: Solar BSSID
+    mac_address:
+      name: Solar Mac Address
+  
+  # Get the uptime    
+  - platform: template
+    name: Solar Uptime Human Readable
+    id: uptime_human
+    icon: mdi:clock-start
+
+sensor:
+  # WiFi Signal sensor.
+  - platform: wifi_signal
+    name: Solar WiFi Signal
+    update_interval: 60s
+
+  # Uptime sensor.
+  - platform: uptime
+    name: Solar Uptime
+  
+  #Dallas DS18B20 Temperature sensor  
+  - platform: dallas
+    address: 0x4302019177082028
+    name: "Solar Temperature"
+    unit_of_measurement: '°F'
+    filters:
+    - lambda: return x * (9.0/5.0) + 32.0;   # Fahrenheit
+    - filter_out: nan
+    
+  - platform: adc
+    pin: A0
+    update_interval: 2s
+    name: "Solar Battery"
+    unit_of_measurement: 'V'
+    filters:
+    - multiply: 10.0
+
+    
+  - platform: uptime
+    name: Solar Uptime Sensor
+    id: uptime_sensor
+    update_interval: 60s
+    on_raw_value:
+      then:
+        - text_sensor.template.publish:
+            id: uptime_human
+            state: !lambda |-
+              int seconds = round(id(uptime_sensor).raw_state);
+              int days = seconds / (24 * 3600);
+              seconds = seconds % (24 * 3600);
+              int hours = seconds / 3600;
+              seconds = seconds % 3600;
+              int minutes = seconds /  60;
+              seconds = seconds % 60;
+              return (
+                (days ? String(days) + "d " : "") +
+                (hours ? String(hours) + "h " : "") +
+                (minutes ? String(minutes) + "m " : "") +
+                (String(seconds) + "s")
+              ).c_str();
+              
+              
+dallas:
+  - pin: D5      
+    update_interval: 5s
+    
+#Blink the LED_BuiltIn if there's a problem, on otherwise.    
+status_led:
+  pin:
+    number: D4

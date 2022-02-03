@@ -1,0 +1,140 @@
+## closet.pir ##
+# Sonoff Basic in my office closet with a PIR sensor on GPIO14
+
+substitutions:
+  devicename: closet_pir
+
+esphome:
+  name: ${devicename}
+  platform: ESP8266
+  board: esp01_1m
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+# Enable Over the Air updates
+ota:
+  safe_mode: True
+  
+wifi:
+  ssid: "Kaywinnet"
+  password: !secret wifi_password
+  fast_connect: true
+#  manual_ip:
+#    # Set this to the IP of the ESP
+#    static_ip: 192.168.1.96
+#    # Set this to the IP address of the router. Often ends with .1
+#    gateway: 192.168.1.1
+#    # The subnet of the network. 255.255.255.0 works for most home networks.
+#    subnet: 255.255.255.0
+
+  # Enable fallback hotspot (captive portal)
+  #in case wifi connection fails
+#  ap:
+#    ssid: "Closet-Pir Fallback Hotspot"
+#    password: "EgeYnBKnpIn7"
+
+#captive_portal:
+
+#=================================================================
+
+  
+# A switch is to operate something external,
+# like a relay attached to a gpio.  
+#
+# Virtual switch D0, GPI16  
+# This becomes an entity: 'switch.wemos_switch'
+switch:
+  - platform: gpio
+    name: ${devicename} Relay
+    pin:
+      number: GPIO12
+      mode: output
+    id: relay
+
+  - platform: restart
+    name: ${devicename} Restart
+
+
+# A physical switch or button should be a binary sensor if you are
+# detecting something like grounding a GPIO pin with a physical Button.
+binary_sensor:
+  - platform: gpio
+    pin: 
+      number: GPIO14    # PIR Sensor
+      inverted: False
+      #mode: INPUT_PULLUP
+    name: ${devicename} PIR
+    id: wemos_button
+    filters:
+      - delayed_off: 30s
+    on_press:
+      then:
+      - switch.turn_on: relay
+#      - delay: 120s
+#      - switch.turn_off: relay
+    on_release:
+      then:
+      - switch.turn_off: relay
+
+
+text_sensor:
+  # Get the WiFi details
+  - platform: wifi_info
+    ip_address:
+      name: ${devicename} Address
+    ssid:
+      name: ${devicename} SSID
+    mac_address:
+      name: ${devicename} Mac Address
+  
+  # Get the uptime    
+  - platform: template
+    name: ${devicename} Uptime
+    id: uptime_human
+    icon: mdi:clock-start
+
+sensor:
+  # WiFi Signal sensor.
+  - platform: wifi_signal
+    name: ${devicename} RSSI
+    update_interval: 60s
+
+  # Uptime sensor.
+  - platform: uptime
+    name: ${devicename} Uptime Epoch
+  
+  - platform: uptime
+    name: ${devicename} Human Uptime Sensor
+    id: uptime_sensor
+    update_interval: 60s
+    on_raw_value:
+      then:
+        - text_sensor.template.publish:
+            id: uptime_human
+            state: !lambda |-
+              int seconds = round(id(uptime_sensor).raw_state);
+              int days = seconds / (24 * 3600);
+              seconds = seconds % (24 * 3600);
+              int hours = seconds / 3600;
+              seconds = seconds % 3600;
+              int minutes = seconds /  60;
+              seconds = seconds % 60;
+              return (
+                (days ? String(days) + "d " : "") +
+                (hours ? String(hours) + "h " : "") +
+                (minutes ? String(minutes) + "m " : "") +
+                (String(seconds) + "s")
+              ).c_str();
+              
+              
+
+#Blink the LED_BUILTIN if there's a problem, on otherwise.    
+status_led:
+  pin:
+    number: GPIO13
+    inverted: True
+    

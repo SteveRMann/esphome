@@ -1,0 +1,70 @@
+esphome:
+  name: guest_bedroom_light
+  platform: ESP8266                 #Sonoff Mini
+  board: esp01_1m
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+#  ap:
+#    ssid: "Guest Bedroom Light"
+#    password: "h5To4jpC5z6w"
+#
+#captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+
+#############################################################################
+# Name                            Entity ID
+# GuestBedroomLight               switch.guestbedroomlight
+# GuestBedroomLight_switch        binary_sensor.guestbedroomlight_switch
+
+
+# A switch is to operate something external, like a relay attached to a gpio.
+# Virtual switch GPIO12
+switch:
+  - platform: gpio
+    name: "GuestBedroomLight"
+    pin:
+      number: 12
+      mode: output
+    id: GuestBedroomLight_relay
+
+
+# A physical switch or button should be a binary sensor if you are detecting something like grounding the pin. 
+#
+# Physical Button on PCB (GPIO0)
+binary_sensor:
+  - platform: gpio
+    pin: 
+      number: 0
+      inverted: False
+      mode: INPUT_PULLUP
+    name: GuestBedroomLight_button
+    internal: true
+    on_press:
+      - switch.toggle: GuestBedroomLight_relay
+      
+
+  # Physical Switch on S2 (GPIO4)
+  - platform: gpio
+    pin: 
+      number: 4
+      inverted: True
+      mode: INPUT
+    name: "GuestBedroomLight_switch"
+    on_press:
+      then:
+      - switch.toggle: GuestBedroomLight_relay
+    on_release:
+      then:
+      - switch.toggle: GuestBedroomLight_relay

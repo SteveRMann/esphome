@@ -1,0 +1,110 @@
+esphome:
+  name: family_room_light
+  platform: ESP8266
+  board: esp01_1m
+
+wifi:
+  ssid: "Kaywinnet"
+  password: "806194edb8"
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+#  ap:
+#    ssid: "Family Room Light"
+#    password: "Awyx4vT6faip"
+#
+#captive_portal:
+
+# Enable logging
+logger:
+  level: DEBUG
+  
+# Enable Home Assistant API
+api:
+
+ota:
+  safe_mode: True
+  
+  
+###############################
+# sensor.familyRoomLight_bssid
+# sensor.familyRoomLight_ip_address
+# sensor.familyRoomLight_mac_address
+# sensor.familyRoomLight_ssid
+# switch.familyRoomLight
+# binary_sensor.familyRoomLight_remote_button
+# sensor.familyRoomLight_wifi_signal_sensor
+# switch.familyRoomLight_led
+###############################
+
+# Virtual switch GPI12  
+switch:
+  - platform: gpio
+    name: "familyRoomLight"
+    pin:
+      number: 12
+      mode: output
+    id: familyRoomLight_relay
+    
+  - platform: gpio
+    name: "familyRoomLight_led"        #Becomes switch.familyRoomLight_led
+    pin:
+      number: 13
+      mode: output
+    id: familyRoomLight_led
+    
+    
+# Physical Button on GPIO0
+binary_sensor:
+  - platform: gpio
+    pin: 
+      number: 0
+      inverted: False
+      mode: INPUT_PULLUP
+    name: familyRoomLight_Button
+    internal: true
+    on_press:
+      - switch.toggle: familyRoomLight_relay    
+      
+  # Physical Button on GPIO14  
+  - platform: gpio
+    pin: 
+      number: 14
+      inverted: False
+      mode: INPUT_PULLUP
+    name: "familyRoomLight Remote Button"
+    on_press:
+      then:
+      - switch.toggle: familyRoomLight_relay
+      - logger.log: "Hello World"
+    on_release:
+      then:
+      - switch.toggle: familyRoomLight_relay
+
+      
+# Get the WiFi details
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: familyRoomLight IP Address
+      id: familyRoomLight_ip
+    ssid:
+      name: familyRoomLight SSID
+    bssid:
+      name: familyRoomLight BSSID
+    mac_address:
+      name: familyRoomLight Mac Address
+      
+sensor:
+  - platform: wifi_signal
+    name: "familyRoomLight WiFi Signal Sensor"
+    id: familyRoomLight_WiFi_level
+    update_interval: 60s
+  
+
+#Blink the LED if there's a problem, on otherwise.	
+status_led:
+  pin:
+    number: 13
+
+
+  
