@@ -1,0 +1,97 @@
+# Device on my desk to respond to the Dinner Bell button in the kitchen.
+# When it is turned on by the Alexa Routine, "Dinner Bell", 
+#
+substitutions:
+  device_name: dinnerbell
+  
+esphome:
+  name: ${device_name}
+  
+esp8266:
+  board: d1_mini
+
+# Enable logging
+# Logger level "debug" is needed to get 1-Wire addresses, like the ds18b20.
+logger:
+  level: DEBUG  
+
+# Enable Home Assistant API
+api:
+
+ota:
+  safe_mode: True
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+  
+
+
+######################################
+# Blink an LED if there's a problem, solid on otherwise.    
+# The built-in LED is D4 (GPIO2) on the Wemos D1 Mini
+status_led:
+  pin:
+    number: D4
+    #inverted: True
+
+
+#####################################
+sensor:
+  - platform: wifi_signal
+    name: ${device_name} Wifi Signal Strength
+    update_interval: 60s
+    
+    
+text_sensor:
+  # Get the WiFi details
+  - platform: wifi_info
+    ip_address:
+      name: ${device_name} IP Address
+    mac_address:
+      name: ${device_name} Mac Address
+
+  
+#######################################
+# Device specific Config Begins Below #
+#######################################
+
+# Switches are things controlled by GPIO outputs on the Wemos. Like a relay or LED.
+switch:
+  - platform: gpio
+    name: ${device_name} D5
+    pin:
+      number: D5
+      mode: output
+    id: ${device_name}_led5
+    
+  - platform: gpio
+    name: ${device_name} D6
+    pin:
+      number: D6
+      mode: output
+    id: ${device_name}_led6
+    
+  - platform: gpio
+    name: ${device_name} D7
+    pin:
+      number: D7
+      mode: output
+    id: ${device_name}_led7
+    
+ 
+    
+# A binary sensor is a physical switch or button that detects when a switch is closed.
+binary_sensor:
+  - platform: gpio
+    name: ${device_name} switch
+    pin:
+      number: D1
+      mode: INPUT_PULLUP
+    on_press:
+      then:
+      - switch.turn_off: ${device_name}_led6
+      - switch.turn_off: ${device_name}_led5
+      - switch.turn_off: ${device_name}_led7
+
