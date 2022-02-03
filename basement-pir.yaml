@@ -1,0 +1,108 @@
+## basement-pir ##
+# Sonoff SV in my basement with a PIR sensor on GPIO14
+
+substitutions:
+  devicename: basement_pir
+
+esphome:
+  name: ${devicename}
+  platform: ESP8266
+  board: esp01_1m
+  
+wifi:
+  ssid: "Kaywinnet"
+  password: !secret wifi_password
+  fast_connect: true
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+#  ap:
+#    ssid: "Wemos_Switch Fallback Hotspot"
+#    password: "Oi136ZHGIzON"
+#
+#captive_portal:
+
+# Enable logging
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+
+# Enable Over the Air updates
+ota:
+  safe_mode: True
+  
+  
+###############################
+# Sonoff SV peripherals
+
+# Virtual switch GPI12  
+switch:
+  - platform: gpio
+    name: ${devicename} relay
+    pin:
+      number: 12
+      mode: output
+    id: relay
+    
+  - platform: gpio
+    name: ${devicename} sled
+    pin:
+      number: 13
+      mode: output
+    id: sled
+    
+    
+# Physical Button on GPIO0
+binary_sensor:
+  - platform: gpio
+    pin: 
+      number: 0
+      inverted: False
+      mode: INPUT_PULLUP
+    name: ${devicename} button
+    internal: true
+    on_press:
+      - switch.toggle: relay    
+      
+  # PIR on GPIO14  
+  - platform: gpio
+    pin: 
+      number: GPIO14                # PIR Sensor
+      inverted: False
+      mode: INPUT_PULLUP
+    name: ${devicename} PIR
+    filters:
+      - delayed_off: 5s    
+    on_press:
+      then:
+      - switch.turn_on: relay
+    on_release:
+      then:
+      - switch.turn_off: relay
+
+      
+# Get the WiFi details
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: ${devicename} IP Address
+      id: ip
+    ssid:
+      name: ${devicename} SSID
+    mac_address:
+      name: ${devicename} Mac Address
+
+sensor:
+  - platform: wifi_signal
+    name: ${devicename} WiFi Signal Sensor
+    update_interval: 60s
+
+
+status_led:
+  pin:
+    number: 5         #On the SV board
+    inverted: True
+    #number: 13        #Green LED on SV board
+
+
